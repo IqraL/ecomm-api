@@ -2,7 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import { healthRouter, productsRouter } from "./routes";
+import { healthRouter, productsRouter, cartRouter } from "./routes";
 import { cartCookieMiddleware } from "./middleware/cartCookieMiddleware";
 
 dotenv.config();
@@ -23,6 +23,8 @@ app.use(express.urlencoded());
 
 app.use("/health", healthRouter);
 app.use("/products", productsRouter);
+app.use("/cart", cartRouter);
+
 
 app.get("/", (req, res) => {
   res.send("ping <> pong");
