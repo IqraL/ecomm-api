@@ -17,4 +17,37 @@ type Product = {
   meta: ProductMetaData[];
 };
 
-export { ProductMetaData, Product };
+type CartItem = {
+  productId: string;
+  name: string;
+  size: string;
+  color: string;
+  quantity: number;
+  price: number;
+  discounted: boolean;
+  discountedPrice?: number;
+  imgs: string[];
+};
+type Cart = {
+  cartId: String;
+  cartItems: CartItem[];
+};
+
+enum CartAction {
+  ADD = "add",
+  REMOVE = "remove",
+}
+type RemoveFromCartBody = {
+  productId: string;
+  color: string;
+  size: string;
+};
+
+export {
+  ProductMetaData,
+  Product,
+  CartItem,
+  Cart,
+  CartAction,
+  RemoveFromCartBody,
+};

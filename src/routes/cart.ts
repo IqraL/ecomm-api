@@ -1,37 +1,45 @@
 import { Router, Request } from "express";
 import { MongoDbClient } from "../db/mongodbclient";
+import { Cart, CartAction, CartItem, RemoveFromCartBody } from "../types";
+import { setCookie } from "../utils/setCookie";
+import { getCartFromDb, getCartIdFromRequest } from "./helpers";
+import { getUserSessionsCollection } from "./helpers";
+import {
+  validateCartAction,
+  validateCartItem,
+  validateRemoveFromCartBody,
+} from "./validation";
 
 const client = MongoDbClient.getClient();
 
 const cartRouter = Router();
 
-// _id
-// 69bf0e2668189ff12d2d5069
-// cartId
-// "0321f45d-8fb3-4b2c-8588-4cee70247c60"
+cartRouter.get("/fetch", async (req, res) => {
+  try {
+    let cartId = getCartIdFromRequest(req);
 
-// cartItems
-type CartItem = {
-  productId: string;
-  name: string;
-  size: string;
-  color: string;
-  quantity: number;
-  price: number;
-  discounted: boolean;
-  discountedPrice?: number;
-  imgs: string[];
-};
-type Cart = {
-  cartId: String;
-  cartItems: CartItem[];
-};
+    if (!cartId) {
+      cartId = await setCookie(req, res);
+    }
 
-enum CartAction {
-  ADD = "add",
-  REMOVE = "remove",
-}
-export const validateCartItem = (cartItem: CartItem) => {};
+    const cart = await getCartFromDb(cartId);
+
+    if (!cart) {
+      return res.json({
+        error: true,
+        message: "could not find cart ",
+      });
+    }
+
+    return res.json(cart);
+  } catch (error) {
+    console.log("error", error);
+    return res.json({
+      error: true,
+      message: "something went wrong when fetching cart",
+    });
+  }
+});
 
 cartRouter.post(
   "/add",
@@ -40,24 +48,30 @@ cartRouter.post(
     res
   ) => {
     try {
-      const cartId = req.cookies?.["cart-id"];
-      const { cartAction } = req.body;
+      let cartId = getCartIdFromRequest(req);
 
       if (!cartId) {
-        return res.json({
-          error: true,
-          message: "no cartId provided ",
-        });
+        cartId = await setCookie(req, res);
       }
       const { cartItem } = req.body;
-      const db = process.env.db;
-      const userSessionsCollection = process.env.user_sessions_collection || "";
+      const isCartItemValid = validateCartItem(cartItem);
+      if (!isCartItemValid) {
+        return res.json({
+          error: true,
+          message: "invalid cart item sent",
+        });
+      }
+      const { cartAction } = req.body;
+      const isCartActionValid = validateCartAction(cartAction);
+      if (!isCartActionValid) {
+        return res.json({
+          error: true,
+          message: "invalid cartAction",
+        });
+      }
 
-      const dbClient = await client;
-      const useCollection = dbClient.db(db).collection(userSessionsCollection);
-      const cart = await useCollection.findOne<Cart>({
-        cartId,
-      });
+      const useCollection = await getUserSessionsCollection();
+      const cart = await getCartFromDb(cartId);
 
       const cartItems = cart?.cartItems;
       if (!cartItems?.length) {
@@ -112,9 +126,7 @@ cartRouter.post(
       );
 
       /* Removing empty products */
-      const updatedCart = await useCollection.findOne<Cart>({
-        cartId,
-      });
+      const updatedCart = await getCartFromDb(cartId);
 
       const filteredCartItems =
         updatedCart?.cartItems.filter(
@@ -136,34 +148,27 @@ cartRouter.post(
   }
 );
 
-type RemoveFromCartBody = {
-  productId: string;
-  color: string;
-  size: string;
-};
 cartRouter.post(
   "/remove",
   async (req: Request<{}, {}, RemoveFromCartBody>, res) => {
     try {
-      const cartId = req.cookies?.["cart-id"];
-      //TODO validate body
-      const { productId, color, size } = req.body;
+      let cartId = getCartIdFromRequest(req);
 
       if (!cartId) {
+        cartId = await setCookie(req, res);
+      }
+
+      const isBodyValid = validateRemoveFromCartBody(req.body);
+      if (!isBodyValid) {
         return res.json({
           error: true,
-          message: "no cartId provided ",
+          message:
+            "invalid body provided. productId , color and size required ",
         });
       }
 
-      const db = process.env.db;
-      const userSessionsCollection = process.env.user_sessions_collection || "";
-
-      const dbClient = await client;
-      const useCollection = dbClient.db(db).collection(userSessionsCollection);
-      const cart = await useCollection.findOne<Cart>({
-        cartId,
-      });
+      const useCollection = await getUserSessionsCollection();
+      const cart = await getCartFromDb(cartId);
 
       if (!cart) {
         return res.json({
@@ -173,6 +178,7 @@ cartRouter.post(
       }
 
       const cartItems = cart?.cartItems;
+      const { productId, color, size } = req.body;
 
       const filteredItems = cartItems.filter((currentCartItem) => {
         if (
@@ -206,6 +212,5 @@ cartRouter.post(
     }
   }
 );
-cartRouter.post("/edit", () => {});
 
 export { cartRouter };

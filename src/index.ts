@@ -30,10 +30,6 @@ app.get("/", (req, res) => {
   res.send("ping <> pong");
 });
 
-app.post("/add-to-cart", (req, res) => {
-  console.log(req.body);
-  res.send(200);
-});
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
