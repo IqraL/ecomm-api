@@ -4,17 +4,37 @@ import { Product } from "../types";
 import { getProductCollection } from "./helpers";
 dotenv.config();
 
+const PRODUCTS_PER_PAGE = 9;
+
 const productsRouter = Router();
 
-productsRouter.get("/get-all", async (_req, res) => {
-  const productCollection = await getProductCollection();
-  const docs = await productCollection.find({});
-  const result: Product[] = [];
-  for await (const doc of docs) {
-    result.push(doc);
+productsRouter.get(
+  "/pagination-data",
+  async (req: Request<{}, {}, {}, { pageNumber: number }>, res) => {
+    const productCollection = await getProductCollection();
+    const numberOfProducts = await productCollection.countDocuments();
+    const numberOfPages = Math.ceil(numberOfProducts / PRODUCTS_PER_PAGE);
+    return res.json({ numberOfProducts, numberOfPages });
   }
-  return res.json(result);
-});
+);
+productsRouter.get(
+  "/get-all",
+  async (req: Request<{}, {}, {}, { pageNumber: number }>, res) => {
+    const pageNumber = req.query.pageNumber || 0;
+    const productCollection = await getProductCollection();
+    const docs = await productCollection
+      .find({})
+      .sort({ position: 1 })
+      .skip(PRODUCTS_PER_PAGE * pageNumber)
+      .limit(PRODUCTS_PER_PAGE)
+      .toArray();
+    const result: Product[] = [];
+    for await (const doc of docs) {
+      result.push(doc);
+    }
+    return res.json(result);
+  }
+);
 
 productsRouter.post(
   "/get-by-id",

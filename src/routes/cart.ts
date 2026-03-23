@@ -1,6 +1,5 @@
 import { Router, Request } from "express";
-import { MongoDbClient } from "../db/mongodbclient";
-import { Cart, CartAction, CartItem, RemoveFromCartBody } from "../types";
+import { CartAction, CartItem, RemoveFromCartBody } from "../types";
 import { setCookie } from "../utils/setCookie";
 import { getCartFromDb, getCartIdFromRequest } from "./helpers";
 import { getUserSessionsCollection } from "./helpers";
@@ -10,7 +9,6 @@ import {
   validateRemoveFromCartBody,
 } from "./validation";
 
-const client = MongoDbClient.getClient();
 
 const cartRouter = Router();
 
