@@ -4,7 +4,7 @@ import { Product } from "../types";
 import { getProductCollection } from "./helpers";
 dotenv.config();
 
-const PRODUCTS_PER_PAGE = 9;
+const PRODUCTS_PER_PAGE = 6;
 
 const productsRouter = Router();
 
@@ -20,7 +20,7 @@ productsRouter.get(
 productsRouter.get(
   "/get-all",
   async (req: Request<{}, {}, {}, { pageNumber: number }>, res) => {
-    const pageNumber = req.query.pageNumber || 0;
+    const pageNumber = Number(req.query.pageNumber ?? 0);
     const productCollection = await getProductCollection();
     const docs = await productCollection
       .find({})

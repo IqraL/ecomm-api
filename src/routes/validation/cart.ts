@@ -2,6 +2,7 @@ import { CartAction, CartItem, RemoveFromCartBody } from "../../types";
 
 export const validateCartItem = (cartItem: CartItem) => {
   const {
+    variantId,
     productId,
     name,
     size,
@@ -12,7 +13,16 @@ export const validateCartItem = (cartItem: CartItem) => {
     discounted,
     discountedPrice,
   } = cartItem;
-  if (!productId || !name || !size || !color || !quantity || !price || !imgs) {
+  if (
+    !productId ||
+    !name ||
+    !size ||
+    !color ||
+    !quantity ||
+    !price ||
+    !imgs ||
+    !variantId
+  ) {
     return false;
   }
 
@@ -31,8 +41,8 @@ export const validateCartAction = (cartAction: CartAction) => {
 };
 
 export const validateRemoveFromCartBody = (reqBody: RemoveFromCartBody) => {
-  const { productId, color, size } = reqBody;
-  if (!productId || !color || !size) {
+  const { productId, variantId } = reqBody;
+  if (!productId || !variantId) {
     return false;
   }
   return true;

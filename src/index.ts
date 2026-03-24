@@ -25,7 +25,6 @@ app.use("/health", healthRouter);
 app.use("/products", productsRouter);
 app.use("/cart", cartRouter);
 
-
 app.get("/", (req, res) => {
   res.send("ping <> pong");
 });
@@ -33,3 +32,5 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+app.get("/update=products", (_req, _res) => {});

@@ -6,6 +6,7 @@ type ProductMetaData = {
   price: number;
   discounted: boolean;
   discountedPrice?: number;
+  variantId: string;
 };
 type Product = {
   id: string;
@@ -19,6 +20,7 @@ type Product = {
 
 type CartItem = {
   productId: string;
+  variantId: string;
   name: string;
   size: string;
   color: string;
@@ -39,8 +41,7 @@ enum CartAction {
 }
 type RemoveFromCartBody = {
   productId: string;
-  color: string;
-  size: string;
+  variantId: string;
 };
 
 export {

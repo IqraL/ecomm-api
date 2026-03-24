@@ -1,14 +1,17 @@
 import { Router, Request } from "express";
 import { CartAction, CartItem, RemoveFromCartBody } from "../types";
 import { setCookie } from "../utils/setCookie";
-import { getCartFromDb, getCartIdFromRequest } from "./helpers";
+import {
+  getCartFromDb,
+  getCartIdFromRequest,
+  getProductCollection,
+} from "./helpers";
 import { getUserSessionsCollection } from "./helpers";
 import {
   validateCartAction,
   validateCartItem,
   validateRemoveFromCartBody,
 } from "./validation";
-
 
 const cartRouter = Router();
 
@@ -21,6 +24,15 @@ cartRouter.get("/fetch", async (req, res) => {
     }
 
     const cart = await getCartFromDb(cartId);
+    const productIds =
+      cart?.cartItems.map((cartItem) => cartItem.productId) || [];
+    const productCollection = await getProductCollection();
+    const products = [];
+
+    for await (const productId of productIds) {
+      const product = await productCollection.findOne({ id: productId });
+      products.push(product);
+    }
 
     if (!cart) {
       return res.json({
@@ -29,7 +41,7 @@ cartRouter.get("/fetch", async (req, res) => {
       });
     }
 
-    return res.json(cart);
+    return res.json({ cart, products });
   } catch (error) {
     console.log("error", error);
     return res.json({
@@ -89,8 +101,7 @@ cartRouter.post(
       const exists = cartItems.some((currentCartItem) => {
         return (
           currentCartItem.productId === cartItem.productId &&
-          currentCartItem.size === cartItem.size &&
-          currentCartItem.color === cartItem.color
+          currentCartItem.variantId === cartItem.variantId
         );
       });
 
@@ -98,8 +109,7 @@ cartRouter.post(
         ? cartItems.map((currentCartItem) => {
             if (
               currentCartItem.productId === cartItem.productId &&
-              currentCartItem.size === cartItem.size &&
-              currentCartItem.color === cartItem.color
+              currentCartItem.variantId === cartItem.variantId
             ) {
               return {
                 ...currentCartItem,
@@ -160,8 +170,7 @@ cartRouter.post(
       if (!isBodyValid) {
         return res.json({
           error: true,
-          message:
-            "invalid body provided. productId , color and size required ",
+          message: "invalid body provided. productId and variantId required ",
         });
       }
 
@@ -176,13 +185,12 @@ cartRouter.post(
       }
 
       const cartItems = cart?.cartItems;
-      const { productId, color, size } = req.body;
+      const { productId, variantId } = req.body;
 
       const filteredItems = cartItems.filter((currentCartItem) => {
         if (
           currentCartItem.productId === productId &&
-          currentCartItem.size === size &&
-          currentCartItem.color === color
+          currentCartItem.variantId === variantId
         ) {
           return false;
         } else {
