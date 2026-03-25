@@ -14,6 +14,20 @@ export const getCartFromDb = async (cartId: string) => {
   return cart;
 };
 
+export const totalCalculation = (updatedCartItems: CartItem[]) => {
+  const total = updatedCartItems.reduce((acc, currentCartItem) => {
+    const price = currentCartItem.discounted
+      ? currentCartItem.discountedPrice
+      : currentCartItem.price;
+
+    const totalPriceWithQuantity =
+      Number(price) * Number(currentCartItem.quantity);
+    return Number(acc) + Number(totalPriceWithQuantity);
+  }, 0);
+
+  return total;
+};
+
 export const updatePrice = async ({
   products,
   cart,

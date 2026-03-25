@@ -11,14 +11,16 @@ import {
   getCartFromDb,
   getCartIdFromRequest,
   getProductCollection,
+  getUserSessionsCollection,
+  totalCalculation,
+  updatePrice,
 } from "./helpers";
-import { getUserSessionsCollection } from "./helpers";
+
 import {
   validateCartAction,
   validateCartItem,
   validateRemoveFromCartBody,
 } from "./validation";
-import { updatePrice } from "./helpers/cart";
 
 const cartRouter = Router();
 
@@ -52,7 +54,16 @@ cartRouter.get("/fetch", async (req, res) => {
     await updatePrice({ cart, cartId, products });
     const updatedCart = await getCartFromDb(cartId);
 
-    return res.json({ cart: updatedCart, products });
+    if (!updatedCart) {
+      return res.json({
+        error: true,
+        message: "could not find cart ",
+      });
+    }
+    const updatedCartItems = updatedCart?.cartItems;
+    const total = totalCalculation(updatedCartItems);
+
+    return res.json({ cart: updatedCart, products, total });
   } catch (error) {
     console.log("error", error);
     return res.json({

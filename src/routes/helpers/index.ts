@@ -1,4 +1,9 @@
-import { getCartIdFromRequest, getCartFromDb } from "./cart";
+import {
+  getCartIdFromRequest,
+  getCartFromDb,
+  totalCalculation,
+  updatePrice,
+} from "./cart";
 
 import { getUserSessionsCollection, getProductCollection } from "./db";
 
@@ -7,4 +12,6 @@ export {
   getCartFromDb,
   getUserSessionsCollection,
   getProductCollection,
+  totalCalculation,
+  updatePrice,
 };
