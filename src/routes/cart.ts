@@ -1,5 +1,11 @@
 import { Router, Request } from "express";
-import { CartAction, CartItem, RemoveFromCartBody } from "../types";
+import {
+  Cart,
+  CartAction,
+  CartItem,
+  Product,
+  RemoveFromCartBody,
+} from "../types";
 import { setCookie } from "../utils/setCookie";
 import {
   getCartFromDb,
@@ -12,6 +18,7 @@ import {
   validateCartItem,
   validateRemoveFromCartBody,
 } from "./validation";
+import { updatePrice } from "./helpers/cart";
 
 const cartRouter = Router();
 
@@ -24,14 +31,15 @@ cartRouter.get("/fetch", async (req, res) => {
     }
 
     const cart = await getCartFromDb(cartId);
+
     const productIds =
       cart?.cartItems.map((cartItem) => cartItem.productId) || [];
     const productCollection = await getProductCollection();
-    const products = [];
+    const products: Product[] = [];
 
     for await (const productId of productIds) {
       const product = await productCollection.findOne({ id: productId });
-      products.push(product);
+      products.push(product as Product);
     }
 
     if (!cart) {
@@ -41,7 +49,10 @@ cartRouter.get("/fetch", async (req, res) => {
       });
     }
 
-    return res.json({ cart, products });
+    await updatePrice({ cart, cartId, products });
+    const updatedCart = await getCartFromDb(cartId);
+
+    return res.json({ cart: updatedCart, products });
   } catch (error) {
     console.log("error", error);
     return res.json({
