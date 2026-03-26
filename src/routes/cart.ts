@@ -57,7 +57,7 @@ cartRouter.get("/fetch", async (req, res) => {
     if (!updatedCart) {
       return res.json({
         error: true,
-        message: "could not find cart ",
+        message: "could not find updatedCart",
       });
     }
     const updatedCartItems = updatedCart?.cartItems;

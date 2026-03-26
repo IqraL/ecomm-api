@@ -63,9 +63,10 @@ export const updatePrice = async ({
               size: productMetaData.size,
               color: productMetaData.color,
               imgs: productMetaData.imgs,
+              stock: productMetaData.stock,
             };
             const userCollection = await getUserSessionsCollection();
-            const result = await userCollection.updateOne(
+            await userCollection.updateOne(
               { cartId: cartId },
               {
                 $set: {

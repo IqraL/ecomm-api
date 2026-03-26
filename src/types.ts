@@ -29,6 +29,7 @@ type CartItem = {
   discounted: boolean;
   discountedPrice?: number;
   imgs: string[];
+  stock: number;
 };
 type Cart = {
   cartId: String;
