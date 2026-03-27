@@ -12,6 +12,7 @@ export const validateCartItem = (cartItem: CartItem) => {
     imgs,
     discounted,
     discountedPrice,
+    stock,
   } = cartItem;
   if (
     !productId ||
@@ -21,11 +22,15 @@ export const validateCartItem = (cartItem: CartItem) => {
     !quantity ||
     !price ||
     !imgs ||
-    !variantId
+    !variantId ||
+    !stock
   ) {
     return false;
   }
 
+  if (quantity > stock) {
+    return false;
+  }
   if (discounted && !discountedPrice) {
     return false;
   }

@@ -54,13 +54,28 @@ cartRouter.get("/fetch", async (req, res) => {
     await updatePrice({ cart, cartId, products });
     const updatedCart = await getCartFromDb(cartId);
 
+    //remove out of stock items
+    const filteredCartItems =
+      updatedCart?.cartItems.filter(
+        (currentCartItem) => currentCartItem.quantity > 0
+      ) ?? [];
+
+    const useCollection = await getUserSessionsCollection();
+
+    await useCollection.updateOne(
+      {
+        cartId,
+      },
+      { $set: { cartItems: filteredCartItems } }
+    );
+
     if (!updatedCart) {
       return res.json({
         error: true,
         message: "could not find updatedCart",
       });
     }
-    const updatedCartItems = updatedCart?.cartItems;
+    const updatedCartItems = filteredCartItems;
     const total = totalCalculation(updatedCartItems);
 
     return res.json({ cart: updatedCart, products, total });
