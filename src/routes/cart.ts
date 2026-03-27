@@ -152,7 +152,10 @@ cartRouter.post(
                 ...currentCartItem,
                 quantity:
                   cartAction === CartAction.ADD
-                    ? currentCartItem.quantity + 1
+                    ? Math.min(
+                        currentCartItem.quantity + 1,
+                        currentCartItem.stock
+                      )
                     : cartAction === CartAction.REMOVE
                     ? currentCartItem.quantity - 1
                     : currentCartItem.quantity,
