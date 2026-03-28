@@ -1,10 +1,5 @@
 import { Router, Request } from "express";
-import {
-  CartAction,
-  CartItem,
-  Product,
-  RemoveFromCartBody,
-} from "../types";
+import { CartAction, CartItem, Product, RemoveFromCartBody } from "../types";
 import { setCookie } from "../utils/setCookie";
 import {
   getCartFromDb,
@@ -94,10 +89,11 @@ cartRouter.post(
     res
   ) => {
     try {
-     let cartId = getCartIdFromRequest(req);
+      let cartId = getCartIdFromRequest(req);
       if (!cartId) {
         cartId = await setCookie(req, res);
       }
+
       const { cartItem } = req.body;
       const isCartItemValid = validateCartItem(cartItem);
       if (!isCartItemValid) {

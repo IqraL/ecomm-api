@@ -4,7 +4,11 @@ import Stripe from "stripe";
 
 import { getCartFromDb, getCartIdFromRequest } from "./helpers";
 import { OrderDocument } from "../types";
-import { getOrdersCollection, getUserSessionsCollection } from "./helpers/db";
+import {
+  getOrdersCollection,
+  getProductCollection,
+  getUserSessionsCollection,
+} from "./helpers/db";
 
 const checkoutRouter = Router();
 
@@ -24,6 +28,7 @@ checkoutRouter.post(
     }
 
     let cartId = getCartIdFromRequest(req);
+
     const cart = await getCartFromDb(cartId);
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
@@ -69,57 +74,89 @@ checkoutRouter.post(
     >,
     res
   ) => {
-    const { email, orderId } = req.body;
-    let cartId = getCartIdFromRequest(req);
+    try {
+      const { email, orderId } = req.body;
+      let cartId = getCartIdFromRequest(req);
 
-    if (!email || !orderId || !cartId) {
+      if (!email || !orderId || !cartId) {
+        return res.json({
+          error: true,
+          message: "please provide a valid email and orderId and cartId",
+        });
+      }
+
+      const cart = await getCartFromDb(cartId);
+      const cartItems = cart?.cartItems || [];
+
+      const orderCollection = await getOrdersCollection();
+      const currentOrder = await orderCollection.findOne({
+        email: email,
+        orderId: orderId,
+      });
+
+      if (currentOrder) {
+        return res.json({
+          ...currentOrder,
+        });
+      }
+
+      const newOrder: OrderDocument = {
+        email: email,
+        orderId: orderId,
+        cartItems: cartItems,
+        stripeSuccess: true,
+        sessionCompleted: false,
+      };
+      await orderCollection.insertOne(newOrder);
+
+      //update product quantity
+      const productCollection = await getProductCollection();
+
+      for (const cartItem of cartItems) {
+        await productCollection.updateOne(
+          {
+            id: cartItem.productId,
+            meta: {
+              $elemMatch: {
+                variantId: cartItem.variantId,
+                //    stock: { $gte: cartItem.quantity },
+              },
+            },
+          },
+          {
+            $inc: {
+              "meta.$[variant].stock": -cartItem.quantity,
+            },
+          },
+          {
+            arrayFilters: [{ "variant.variantId": cartItem.variantId }],
+          }
+        );
+      }
+
+      //Empty user cart after success full transaction
+      const userCollection = await getUserSessionsCollection();
+      await userCollection.updateOne(
+        {
+          cartId,
+        },
+        {
+          $set: {
+            cartItems: [],
+          },
+        }
+      );
+
+      return res.json({
+        error: false,
+        done: true,
+      });
+    } catch (error) {
       return res.json({
         error: true,
-        message: "please provide a valid email and orderId and cartId",
+        message: "failed add order",
       });
     }
-
-    const cart = await getCartFromDb(cartId);
-    const cartItems = cart?.cartItems || [];
-
-    const orderCollection = await getOrdersCollection();
-    const currentOrder = await orderCollection.findOne({
-      email: email,
-      orderId: orderId,
-    });
-
-    if (currentOrder) {
-      return res.json({
-        ...currentOrder,
-      });
-    }
-
-    const newOrder: OrderDocument = {
-      email: email,
-      orderId: orderId,
-      cartItems: cartItems,
-      stripeSuccess: true,
-      sessionCompleted: false,
-    };
-    await orderCollection.insertOne(newOrder);
-
-    //update product quantity
-    // empty cart
-    const userCollection = await getUserSessionsCollection();
-    await userCollection.updateOne(
-      {
-        cartId,
-      },
-      {
-        $set: {
-          cartItems: [],
-        },
-      }
-    );
-
-    return res.json({
-        done: true
-    })
   }
 );
 
