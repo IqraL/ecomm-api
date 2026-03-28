@@ -1,6 +1,5 @@
 import { Router, Request } from "express";
 import {
-  Cart,
   CartAction,
   CartItem,
   Product,
@@ -96,7 +95,7 @@ cartRouter.post(
   ) => {
     try {
       let cartId = getCartIdFromRequest(req);
-
+    //   let cartId = "1e198fdf-156b-421f-8f0f-fc41accf3f35";
       if (!cartId) {
         cartId = await setCookie(req, res);
       }

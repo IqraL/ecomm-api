@@ -45,6 +45,13 @@ type RemoveFromCartBody = {
   variantId: string;
 };
 
+type Order = {
+  email: string;
+  orderId: string;
+  cartItems: CartItem[];
+  stripeSuccess: boolean;
+  sessionCompleted: boolean;
+};
 export {
   ProductMetaData,
   Product,
@@ -52,4 +59,5 @@ export {
   Cart,
   CartAction,
   RemoveFromCartBody,
+  Order,
 };

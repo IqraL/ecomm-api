@@ -1,14 +1,23 @@
-import express from "express";
+import express, { Request } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import { healthRouter, productsRouter, cartRouter } from "./routes";
+import { randomUUID } from "node:crypto";
+
+import {
+  healthRouter,
+  productsRouter,
+  cartRouter,
+  checkoutRouter,
+} from "./routes";
 import { cartCookieMiddleware } from "./middleware/cartCookieMiddleware";
 
 dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
+
+
 app.use(cookieParser());
 app.use(
   cors({
@@ -24,13 +33,13 @@ app.use(express.urlencoded());
 app.use("/health", healthRouter);
 app.use("/products", productsRouter);
 app.use("/cart", cartRouter);
+app.use("/checkout", checkoutRouter);
 
 app.get("/", (req, res) => {
   res.send("ping <> pong");
 });
 
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on ${process.env.frontend_host}:${port}`);
 });
 
-app.get("/update=products", (_req, _res) => {});
