@@ -45,7 +45,7 @@ type RemoveFromCartBody = {
   variantId: string;
 };
 
-type Order = {
+type OrderDocument = {
   email: string;
   orderId: string;
   cartItems: CartItem[];
@@ -59,5 +59,5 @@ export {
   Cart,
   CartAction,
   RemoveFromCartBody,
-  Order,
+  OrderDocument,
 };

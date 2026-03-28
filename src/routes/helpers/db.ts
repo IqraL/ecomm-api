@@ -1,5 +1,5 @@
 import { MongoDbClient } from "../../db/mongodbclient";
-import { Product } from "../../types";
+import { OrderDocument, Product } from "../../types";
 
 const client = MongoDbClient.getClient();
 
@@ -18,5 +18,16 @@ export const getProductCollection = async () => {
 
   const dbClient = await client;
   const collection = dbClient.db(db).collection<Product>(productCollection);
+  return collection;
+};
+
+export const getOrdersCollection = async () => {
+  const db = process.env.db;
+  const productCollection = process.env.orders_collection || "";
+
+  const dbClient = await client;
+  const collection = dbClient
+    .db(db)
+    .collection<OrderDocument>(productCollection);
   return collection;
 };

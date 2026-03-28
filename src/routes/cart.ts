@@ -94,8 +94,7 @@ cartRouter.post(
     res
   ) => {
     try {
-      let cartId = getCartIdFromRequest(req);
-    //   let cartId = "1e198fdf-156b-421f-8f0f-fc41accf3f35";
+     let cartId = getCartIdFromRequest(req);
       if (!cartId) {
         cartId = await setCookie(req, res);
       }
