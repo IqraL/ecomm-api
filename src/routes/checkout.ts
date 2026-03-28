@@ -147,9 +147,13 @@ checkoutRouter.post(
         }
       );
 
+      const addedOrder = await orderCollection.findOne({
+        email: email,
+        orderId: orderId,
+      });
+
       return res.json({
-        error: false,
-        done: true,
+        ...addedOrder,
       });
     } catch (error) {
       return res.json({
