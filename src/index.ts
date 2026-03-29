@@ -2,7 +2,6 @@ import express, { Request } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
-import { randomUUID } from "node:crypto";
 
 import {
   healthRouter,
@@ -16,7 +15,6 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
-
 
 app.use(cookieParser());
 app.use(
@@ -35,11 +33,18 @@ app.use("/products", productsRouter);
 app.use("/cart", cartRouter);
 app.use("/checkout", checkoutRouter);
 
-app.get("/", (req, res) => {
-  res.send("ping <> pong");
-});
+// app.get("/app", (req, res) => {
+//   console.log("req");
+//   console.log(req);
+
+//   res.send("ping pong");
+// });
+
 
 app.listen(port, () => {
-  console.log(`Server running on ${process.env.frontend_host}:${port}`);
+  console.log(`Server running on localhost:${port}`);
 });
-
+//stripe login
+//stripe listen --forward-to http://localhost:3000/checkout/session-completed
+//stripe trigger checkout.session.completed
+//stripe listen --events checkout.session.completed --forward-to http://localhost:3000/app

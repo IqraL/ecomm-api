@@ -51,6 +51,11 @@ checkoutRouter.post(
       line_items: [...lineItems],
       customer_email: email,
       mode: "payment",
+      client_reference_id: orderId,
+      metadata: {
+        orderId,
+        email,
+      },
       success_url: `${process.env.frontend_host}/success?orderId=${orderId}&email=${email}`,
       cancel_url: `${process.env.frontend_host}/cart`,
     });
@@ -164,4 +169,21 @@ checkoutRouter.post(
   }
 );
 
+checkoutRouter.post("/session-completed", (req, res) => {
+   if (req.body.type === "checkout.session.completed") {
+     const session = req.body.data.object;
+
+     const stripeSessionId = session.id;
+     const orderIdFromClientReference = session.client_reference_id;
+     const orderIdFromMetadata = session.metadata?.orderId;
+     const email = session.customer_email ?? session.metadata?.email;
+
+     console.log({
+       stripeSessionId,
+       orderIdFromClientReference,
+       orderIdFromMetadata,
+       email,
+     });
+   }
+});
 export { checkoutRouter };
