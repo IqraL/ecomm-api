@@ -111,7 +111,7 @@ checkoutRouter.post(
         cartItems: cartItems,
         stripeSuccess: true,
         sessionCompleted: false,
-        stripeSessionId:"",
+        stripeSessionId: "",
       };
       await orderCollection.insertOne(newOrder);
 
@@ -200,8 +200,9 @@ checkoutRouter.post("/session-completed", async (req, res) => {
 
     if (result.matchedCount === 0) {
       console.log("⚠️ Order not found:", { orderId, email });
+      return res.sendStatus(400);
     }
-
   }
+  return res.sendStatus(200);
 });
 export { checkoutRouter };
