@@ -111,6 +111,7 @@ checkoutRouter.post(
         cartItems: cartItems,
         stripeSuccess: true,
         sessionCompleted: false,
+        stripeSessionId:"",
       };
       await orderCollection.insertOne(newOrder);
 
@@ -169,21 +170,38 @@ checkoutRouter.post(
   }
 );
 
-checkoutRouter.post("/session-completed", (req, res) => {
-   if (req.body.type === "checkout.session.completed") {
-     const session = req.body.data.object;
+checkoutRouter.post("/session-completed", async (req, res) => {
+  if (req.body.type === "checkout.session.completed") {
+    const session = req.body.data.object;
 
-     const stripeSessionId = session.id;
-     const orderIdFromClientReference = session.client_reference_id;
-     const orderIdFromMetadata = session.metadata?.orderId;
-     const email = session.customer_email ?? session.metadata?.email;
+    const stripeSessionId = session.id;
+    const email = session.customer_email ?? session.metadata?.email;
+    const orderId = session.client_reference_id || session.metadata?.orderId;
 
-     console.log({
-       stripeSessionId,
-       orderIdFromClientReference,
-       orderIdFromMetadata,
-       email,
-     });
-   }
+    if (!orderId || !email) {
+      console.log("Missing orderId or email");
+      return res.sendStatus(400);
+    }
+
+    const orderCollection = await getOrdersCollection();
+
+    const result = await orderCollection.updateOne(
+      {
+        orderId,
+        email,
+      },
+      {
+        $set: {
+          sessionCompleted: true,
+          stripeSessionId,
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      console.log("⚠️ Order not found:", { orderId, email });
+    }
+
+  }
 });
 export { checkoutRouter };

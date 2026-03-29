@@ -51,6 +51,7 @@ type OrderDocument = {
   cartItems: CartItem[];
   stripeSuccess: boolean;
   sessionCompleted: boolean;
+  stripeSessionId: string
 };
 export {
   ProductMetaData,
