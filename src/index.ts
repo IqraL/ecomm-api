@@ -19,7 +19,10 @@ const port = Number(process.env.PORT) || 3000;
 app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.frontend_host,
+    origin:
+      process.env.environment === "dev"
+        ? process.env.frontend_host_dev
+        : process.env.frontend_host_prod,
     credentials: true,
   })
 );
@@ -32,7 +35,6 @@ app.use("/health", healthRouter);
 app.use("/products", productsRouter);
 app.use("/cart", cartRouter);
 app.use("/checkout", checkoutRouter);
-
 
 app.listen(port, () => {
   console.log(`Server running on localhost:${port}`);

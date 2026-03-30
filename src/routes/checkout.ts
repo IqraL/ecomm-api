@@ -17,11 +17,20 @@ dotenv.config();
 
 const checkoutRouter = Router();
 
-const stripe = new Stripe(process.env.stripe_secret_key ?? "");
+const stripe = new Stripe(
+  process.env.environment === "dev"
+    ? process.env.stripe_secret_key_dev || ""
+    : process.env.stripe_secret_key_prod || ""
+);
 
 checkoutRouter.post(
   "/create-session",
   async (req: Request<{}, {}, { email: string }>, res) => {
+    const FRONTEND_HOST =
+      process.env.environment === "dev"
+        ? process.env.frontend_host_dev
+        : process.env.frontend_host_prod;
+
     const orderId = randomUUID();
     const { email } = req.body;
 
@@ -62,8 +71,8 @@ checkoutRouter.post(
         email,
         cartId,
       },
-      success_url: `${process.env.frontend_host}/success?orderId=${orderId}&email=${email}`,
-      cancel_url: `${process.env.frontend_host}/cart`,
+      success_url: `${FRONTEND_HOST}/success?orderId=${orderId}&email=${email}`,
+      cancel_url: `${FRONTEND_HOST}/cart`,
     });
 
     res.send({
@@ -184,7 +193,6 @@ checkoutRouter.post("/session-completed", async (req, res) => {
       return res.sendStatus(400);
     }
 
-    //TODO://send order email
     if (addedOrder) {
       sendEmail({ order: addedOrder });
     }
