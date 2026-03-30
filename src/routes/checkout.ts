@@ -1,6 +1,8 @@
 import { Router, Request } from "express";
 import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
+import { ServerClient } from "postmark";
+import dotenv from "dotenv";
 
 import { getCartFromDb, getCartIdFromRequest } from "./helpers";
 import { OrderDocument } from "../types";
@@ -9,6 +11,9 @@ import {
   getProductCollection,
   getUserSessionsCollection,
 } from "./helpers/db";
+import { sendEmail } from "./helpers";
+
+dotenv.config();
 
 const checkoutRouter = Router();
 
@@ -55,6 +60,7 @@ checkoutRouter.post(
       metadata: {
         orderId,
         email,
+        cartId,
       },
       success_url: `${process.env.frontend_host}/success?orderId=${orderId}&email=${email}`,
       cancel_url: `${process.env.frontend_host}/cart`,
@@ -66,124 +72,94 @@ checkoutRouter.post(
   }
 );
 
-checkoutRouter.post(
-  "/success",
-  async (
-    req: Request<
-      {},
-      {},
-      {
-        email: string;
-        orderId: string;
-      }
-    >,
-    res
-  ) => {
-    try {
-      const { email, orderId } = req.body;
-      let cartId = getCartIdFromRequest(req);
+checkoutRouter.post("/session-completed", async (req, res) => {
+  if (req.body.type !== "checkout.session.completed") {
+    return res.sendStatus(200);
+  }
 
-      if (!email || !orderId || !cartId) {
-        return res.json({
-          error: true,
-          message: "please provide a valid email and orderId and cartId",
-        });
-      }
+  const session = req.body.data.object;
 
-      const cart = await getCartFromDb(cartId);
-      const cartItems = cart?.cartItems || [];
+  const cartId = session.metadata?.cartId;
+  const cart = await getCartFromDb(cartId);
+  const cartItems = cart?.cartItems || [];
 
-      const orderCollection = await getOrdersCollection();
-      const currentOrder = await orderCollection.findOne({
-        email: email,
-        orderId: orderId,
-      });
+  if (!cartItems.length) {
+    return res.status(400).json({
+      error: true,
+      message: "Cart is empty or not found",
+    });
+  }
 
-      if (currentOrder) {
-        return res.json({
-          ...currentOrder,
-        });
-      }
+  const stripeSessionId = session.id;
+  const email = session.customer_email ?? session.metadata?.email;
+  const orderId = session.client_reference_id || session.metadata?.orderId;
 
-      const newOrder: OrderDocument = {
-        email: email,
-        orderId: orderId,
-        cartItems: cartItems,
-        stripeSuccess: true,
-        sessionCompleted: false,
-        stripeSessionId: "",
-      };
-      await orderCollection.insertOne(newOrder);
+  if (!cartId || !email || !orderId) {
+    return res.status(400).json({
+      error: true,
+      message: "Missing cartId, email, or orderId",
+    });
+  }
 
-      //update product quantity
-      const productCollection = await getProductCollection();
+  const orderCollection = await getOrdersCollection();
+  const currentOrder = await orderCollection.findOne({
+    email: email,
+    orderId: orderId,
+  });
 
-      for (const cartItem of cartItems) {
-        await productCollection.updateOne(
-          {
-            id: cartItem.productId,
-            meta: {
-              $elemMatch: {
-                variantId: cartItem.variantId,
-                //    stock: { $gte: cartItem.quantity },
-              },
-            },
-          },
-          {
-            $inc: {
-              "meta.$[variant].stock": -cartItem.quantity,
-            },
-          },
-          {
-            arrayFilters: [{ "variant.variantId": cartItem.variantId }],
-          }
-        );
-      }
+  if (currentOrder) {
+    return res.json({
+      ...currentOrder,
+    });
+  }
+  if (!currentOrder) {
+    const newOrder: OrderDocument = {
+      email: email,
+      orderId: orderId,
+      cartItems: cartItems,
+      stripeSuccess: true,
+      sessionCompleted: true,
+      stripeSessionId: stripeSessionId,
+    };
+    await orderCollection.insertOne(newOrder);
 
-      //Empty user cart after success full transaction
-      const userCollection = await getUserSessionsCollection();
-      await userCollection.updateOne(
+    //update product quantity
+    const productCollection = await getProductCollection();
+
+    for (const cartItem of cartItems) {
+      await productCollection.updateOne(
         {
-          cartId,
+          id: cartItem.productId,
+          meta: {
+            $elemMatch: {
+              variantId: cartItem.variantId,
+              //    stock: { $gte: cartItem.quantity },
+            },
+          },
         },
         {
-          $set: {
-            cartItems: [],
+          $inc: {
+            "meta.$[variant].stock": -cartItem.quantity,
           },
+        },
+        {
+          arrayFilters: [{ "variant.variantId": cartItem.variantId }],
         }
       );
-
-      const addedOrder = await orderCollection.findOne({
-        email: email,
-        orderId: orderId,
-      });
-
-      return res.json({
-        ...addedOrder,
-      });
-    } catch (error) {
-      return res.json({
-        error: true,
-        message: "failed add order",
-      });
-    }
-  }
-);
-
-checkoutRouter.post("/session-completed", async (req, res) => {
-  if (req.body.type === "checkout.session.completed") {
-    const session = req.body.data.object;
-
-    const stripeSessionId = session.id;
-    const email = session.customer_email ?? session.metadata?.email;
-    const orderId = session.client_reference_id || session.metadata?.orderId;
-
-    if (!orderId || !email) {
-      console.log("Missing orderId or email");
-      return res.sendStatus(400);
     }
 
-    const orderCollection = await getOrdersCollection();
+    //empty cart
+    const userCollection = await getUserSessionsCollection();
+    await userCollection.updateOne(
+      {
+        cartId,
+      },
+      {
+        $set: {
+          cartItems: [],
+        },
+      }
+    );
 
     const result = await orderCollection.updateOne(
       {
@@ -198,11 +174,74 @@ checkoutRouter.post("/session-completed", async (req, res) => {
       }
     );
 
+    const addedOrder = await orderCollection.findOne({
+      email: email,
+      orderId: orderId,
+    });
+
     if (result.matchedCount === 0) {
       console.log("⚠️ Order not found:", { orderId, email });
       return res.sendStatus(400);
     }
+
+    //TODO://send order email
+    if (addedOrder) {
+      sendEmail({ order: addedOrder });
+    }
+
+    return res.json({
+      ...addedOrder,
+    });
   }
   return res.sendStatus(200);
 });
+
+checkoutRouter.post(
+  "/get-order",
+  async (
+    req: Request<
+      {},
+      {},
+      {
+        email: string;
+        orderId: string;
+      }
+    >,
+    res
+  ) => {
+    try {
+      const { email, orderId } = req.body;
+
+      if (!email || !orderId) {
+        return res.json({
+          error: true,
+          message: "please provide a valid email and orderId and cartId",
+        });
+      }
+
+      const orderCollection = await getOrdersCollection();
+      const currentOrder = await orderCollection.findOne({
+        email: email,
+        orderId: orderId,
+      });
+
+      if (currentOrder) {
+        return res.json({
+          ...currentOrder,
+        });
+      } else {
+        return res.json({
+          error: true,
+          message: "order not found",
+        });
+      }
+    } catch (error) {
+      return res.json({
+        error: true,
+        message: "failed to get order",
+      });
+    }
+  }
+);
+
 export { checkoutRouter };

@@ -33,13 +33,6 @@ app.use("/products", productsRouter);
 app.use("/cart", cartRouter);
 app.use("/checkout", checkoutRouter);
 
-// app.get("/app", (req, res) => {
-//   console.log("req");
-//   console.log(req);
-
-//   res.send("ping pong");
-// });
-
 
 app.listen(port, () => {
   console.log(`Server running on localhost:${port}`);

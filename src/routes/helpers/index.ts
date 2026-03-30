@@ -4,7 +4,7 @@ import {
   totalCalculation,
   updatePrice,
 } from "./cart";
-
+import { sendEmail } from "./sendEmail";
 import { getUserSessionsCollection, getProductCollection } from "./db";
 
 export {
@@ -14,4 +14,5 @@ export {
   getProductCollection,
   totalCalculation,
   updatePrice,
+  sendEmail,
 };
