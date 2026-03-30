@@ -1,5 +1,8 @@
 import { ServerClient } from "postmark";
+import dotenv from "dotenv";
 import { OrderDocument } from "../../types";
+
+dotenv.config();
 
 export const sendEmail = async ({ order }: { order: OrderDocument }) => {
   try {

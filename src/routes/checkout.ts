@@ -1,7 +1,6 @@
 import { Router, Request } from "express";
 import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
-import { ServerClient } from "postmark";
 import dotenv from "dotenv";
 
 import { getCartFromDb, getCartIdFromRequest } from "./helpers";

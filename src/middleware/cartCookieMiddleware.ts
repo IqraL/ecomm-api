@@ -1,8 +1,5 @@
 import { Request, Response } from "express";
-import { MongoDbClient } from "../db/mongodbclient";
 import { setCookie } from "../utils/setCookie";
-
-export const client = MongoDbClient.getClient();
 
 export const cartCookieMiddleware = async (
   req: Request,

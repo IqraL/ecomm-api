@@ -38,4 +38,6 @@ class MongoDbClient {
   }
 }
 
+export const client = MongoDbClient.getClient();
+
 export { MongoDbClient };
